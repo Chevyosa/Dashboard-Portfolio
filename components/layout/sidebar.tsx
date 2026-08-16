@@ -6,13 +6,15 @@ import {
   LayoutDashboard, 
   FolderKanban, 
   Settings, 
-  FileText
+  FileText,
+  Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/dashboard/projects", icon: FolderKanban },
+  { name: "Skills", href: "/dashboard/skills", icon: Layers },
   { name: "Articles", href: "/dashboard/articles", icon: FileText },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
