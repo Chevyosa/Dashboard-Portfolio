@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Moon, Sun, LogOut } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Moon, Sun, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,20 +20,22 @@ import { toast } from "sonner";
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  
+  const { resolvedTheme, setTheme } = useTheme();
+
   // Create breadcrumbs from pathname (e.g., /dashboard/projects -> Dashboard / Projects)
   const paths = pathname.split('/').filter(Boolean);
 
   const toggleTheme = () => {
-    document.documentElement.classList.toggle('dark');
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   const handleLogout = async () => {
     try {
       await fetcher('/auth/logout', { method: 'POST' });
       toast.success("Logged out successfully");
-      window.location.href = "/login";
-    } catch (error) {
+      router.push("/login");
+      router.refresh();
+    } catch {
       toast.error("Failed to logout");
     }
   };
@@ -58,9 +61,6 @@ export function Header() {
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
           <Sun className="h-4 w-4 dark:hidden" />
           <Moon className="h-4 w-4 hidden dark:block" />
-        </Button>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-4 w-4" />
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger className="rounded-full outline-none">

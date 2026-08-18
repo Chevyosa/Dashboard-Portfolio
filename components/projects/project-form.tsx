@@ -11,51 +11,142 @@ import { X, ArrowLeft, Save } from "lucide-react";
 import { Project } from "@/types";
 import { toast } from "sonner";
 import { fetcher } from "@/lib/api";
+import { ImageUploader } from "@/components/projects/image-uploader";
+import { TechStackPicker } from "@/components/projects/tech-stack-picker";
+
+interface TagFieldProps {
+  label: string;
+  placeholder: string;
+  tags: string[];
+  input: string;
+  onInputChange: (value: string) => void;
+  onAdd: () => void;
+  onRemove: (tag: string) => void;
+}
+
+function TagField({ label, placeholder, tags, input, onInputChange, onAdd, onRemove }: TagFieldProps) {
+  return (
+    <div className="space-y-2 pt-2 border-t border-border/50">
+      <label className="text-sm font-medium">{label}</label>
+      <div className="flex flex-wrap gap-2 mb-2">
+        {tags.map((tag) => (
+          <Badge key={tag} variant="secondary" className="pr-1 rounded-md">
+            {tag}
+            <button
+              type="button"
+              onClick={() => onRemove(tag)}
+              className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </Badge>
+        ))}
+      </div>
+      <Input
+        placeholder={placeholder}
+        value={input}
+        onChange={(e) => onInputChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            onAdd();
+          }
+        }}
+        className="rounded-xl"
+      />
+    </div>
+  );
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="space-y-3">
+      <label className="text-sm font-medium flex justify-between items-center">
+        <span>{label}</span>
+        <div className="flex items-center gap-2">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={checked}
+              onChange={(e) => onChange(e.target.checked)}
+            />
+            <div className="w-9 h-5 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+          </label>
+        </div>
+      </label>
+    </div>
+  );
+}
 
 export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
   const router = useRouter();
-  
+
   const [title, setTitle] = useState(initialData?.title || "");
   const [slug, setSlug] = useState(initialData?.slug || "");
+  const [subtitle, setSubtitle] = useState(initialData?.subtitle || "");
   const [excerpt, setExcerpt] = useState(initialData?.excerpt || "");
-  const [content, setContent] = useState(initialData?.content || "");
-  const [techInput, setTechInput] = useState("");
+  const [challenge, setChallenge] = useState(initialData?.challenge || "");
+  const [solution, setSolution] = useState(initialData?.solution || "");
   const [techStack, setTechStack] = useState<string[]>(initialData?.tech_stack || []);
+  const [results, setResults] = useState<string[]>(initialData?.results || []);
+  const [resultInput, setResultInput] = useState("");
+  const [gallery, setGallery] = useState<string[]>(initialData?.gallery || []);
   const [liveUrl, setLiveUrl] = useState(initialData?.live_url || "");
   const [repoUrl, setRepoUrl] = useState(initialData?.repo_url || "");
   const [imageUrl, setImageUrl] = useState(initialData?.image_url || "");
+  const [year, setYear] = useState(initialData?.year ? String(initialData.year) : "");
   const [isPublished, setIsPublished] = useState(initialData?.is_published || false);
+  const [confidential, setConfidential] = useState(initialData?.confidential || false);
 
-  // Auto generate slug from title
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
     setSlug(newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
   };
 
-  // Handle tech stack tags
-  const handleTechInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const newTech = techInput.trim();
-      if (newTech && !techStack.includes(newTech)) {
-        setTechStack([...techStack, newTech]);
-      }
-      setTechInput("");
+  const addTag = (input: string, current: string[], setCurrent: (v: string[]) => void, setInput: (v: string) => void) => {
+    const newTag = input.trim();
+    if (newTag && !current.includes(newTag)) {
+      setCurrent([...current, newTag]);
     }
+    setInput("");
   };
 
-  const removeTech = (techToRemove: string) => {
-    setTechStack(techStack.filter(tech => tech !== techToRemove));
+  const removeTag = (list: string[], setList: (v: string[]) => void, tag: string) => {
+    setList(list.filter((t) => t !== tag));
+  };
+
+  const handleConfidentialChange = (v: boolean) => {
+    setConfidential(v);
+    if (v) {
+      setLiveUrl("");
+      setRepoUrl("");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const payload = {
-        title, slug, excerpt, content, tech_stack: techStack, live_url: liveUrl, repo_url: repoUrl, image_url: imageUrl, is_published: isPublished, order_index: initialData?.order_index || 0
+        title,
+        slug,
+        subtitle,
+        excerpt,
+        challenge,
+        solution,
+        results,
+        tech_stack: techStack,
+        image_url: imageUrl,
+        gallery,
+        live_url: confidential ? "" : liveUrl,
+        repo_url: confidential ? "" : repoUrl,
+        year: year ? parseInt(year, 10) : null,
+        confidential,
+        is_published: isPublished,
+        order_index: initialData?.order_index || 0
       };
-      
+
       if (initialData?.id) {
         await fetcher(`/projects/${initialData.id}`, {
           method: 'PUT',
@@ -69,7 +160,7 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
         });
         toast.success("Project created successfully!");
       }
-      
+
       router.push('/dashboard/projects');
       router.refresh();
     } catch (error) {
@@ -104,8 +195,8 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Title</label>
-                <Input 
-                  placeholder="e.g. E-Commerce Dashboard" 
+                <Input
+                  placeholder="e.g. E-Commerce Dashboard"
                   value={title}
                   onChange={handleTitleChange}
                   required
@@ -114,8 +205,8 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Slug</label>
-                <Input 
-                  placeholder="e-commerce-dashboard" 
+                <Input
+                  placeholder="e-commerce-dashboard"
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   required
@@ -124,22 +215,39 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
                 <p className="text-xs text-muted-foreground">Auto-generated from title, must be unique.</p>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Excerpt</label>
-                <Input 
-                  placeholder="Short description of the project" 
+                <label className="text-sm font-medium">Subtitle</label>
+                <Input
+                  placeholder="Short headline for this project"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Description</label>
+                <Input
+                  placeholder="Short description of the project"
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
                   className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Content (Markdown)</label>
-                <textarea 
-                  className="flex min-h-[300px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
-                  placeholder="Write your project details here in markdown..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  required
+                <label className="text-sm font-medium">Challenge</label>
+                <textarea
+                  className="flex min-h-[100px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                  placeholder="What problem did this project solve?"
+                  value={challenge}
+                  onChange={(e) => setChallenge(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Solution</label>
+                <textarea
+                  className="flex min-h-[100px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                  placeholder="How was the project implemented?"
+                  value={solution}
+                  onChange={(e) => setSolution(e.target.value)}
                 />
               </div>
             </CardContent>
@@ -149,77 +257,80 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
         <div className="space-y-6">
           <Card className="rounded-2xl border-border/50 shadow-sm">
             <CardContent className="p-6 space-y-4">
-              <div className="space-y-3">
-                <label className="text-sm font-medium flex justify-between items-center">
-                  <span>Status</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Published</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={isPublished}
-                        onChange={(e) => setIsPublished(e.target.checked)}
-                      />
-                      <div className="w-9 h-5 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                  </div>
-                </label>
-              </div>
+              <Toggle label="Status (Published)" checked={isPublished} onChange={setIsPublished} />
+              <Toggle label="Confidential" checked={confidential} onChange={handleConfidentialChange} />
 
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <label className="text-sm font-medium">Tech Stack</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {techStack.map(tech => (
-                    <Badge key={tech} variant="secondary" className="pr-1 rounded-md">
-                      {tech}
-                      <button 
-                        type="button" 
-                        onClick={() => removeTech(tech)}
-                        className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <Input 
-                  placeholder="Type and press enter..." 
-                  value={techInput}
-                  onChange={(e) => setTechInput(e.target.value)}
-                  onKeyDown={handleTechInputKeyDown}
+              <TechStackPicker value={techStack} onChange={setTechStack} />
+
+              <TagField
+                label="Results"
+                placeholder="Type a result and press enter..."
+                tags={results}
+                input={resultInput}
+                onInputChange={setResultInput}
+                onAdd={() => addTag(resultInput, results, setResults, setResultInput)}
+                onRemove={(tag) => removeTag(results, setResults, tag)}
+              />
+
+              <ImageUploader
+                label="Gallery Images"
+                hint="Up to 10 images"
+                kind="gallery"
+                multiple
+                max={10}
+                value={gallery}
+                onChange={setGallery}
+              />
+
+              <ImageUploader
+                label="Cover Image"
+                kind="cover"
+                max={1}
+                value={imageUrl ? [imageUrl] : []}
+                onChange={(urls) => setImageUrl(urls[0] || "")}
+              />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Year</label>
+                <Input
+                  placeholder="e.g. 2026"
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
                   className="rounded-xl"
                 />
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <label className="text-sm font-medium">Image URL</label>
-                <Input 
-                  placeholder="https://..." 
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              
               <div className="space-y-2">
                 <label className="text-sm font-medium">Live URL</label>
-                <Input 
-                  placeholder="https://..." 
+                <Input
+                  placeholder="https://..."
                   value={liveUrl}
                   onChange={(e) => setLiveUrl(e.target.value)}
+                  disabled={confidential}
                   className="rounded-xl"
                 />
+                {confidential && (
+                  <p className="text-xs text-muted-foreground">
+                    Disabled for confidential projects.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Repository URL</label>
-                <Input 
-                  placeholder="https://github.com/..." 
+                <Input
+                  placeholder="https://github.com/..."
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
+                  disabled={confidential}
                   className="rounded-xl"
                 />
+                {confidential && (
+                  <p className="text-xs text-muted-foreground">
+                    Disabled for confidential projects.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

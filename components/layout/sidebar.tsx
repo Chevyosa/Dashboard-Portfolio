@@ -2,19 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  Settings, 
-  FileText
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/dashboard/projects", icon: FolderKanban },
-  { name: "Articles", href: "/dashboard/articles", icon: FileText },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Skills", href: "/dashboard/skills", icon: Layers },
 ];
 
 export function Sidebar() {
@@ -31,8 +29,8 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-2">
         {navItems.map((item) => {
-          const isActive = item.href === '/dashboard' 
-            ? pathname === '/dashboard' 
+          const isActive = item.href === '/dashboard'
+            ? pathname === '/dashboard'
             : (pathname === item.href || pathname.startsWith(`${item.href}/`));
           const Icon = item.icon;
           return (
@@ -41,8 +39,8 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                isActive 
-                  ? "bg-primary/5 text-primary" 
+                isActive
+                  ? "bg-primary/5 text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
