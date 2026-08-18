@@ -86,7 +86,6 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
   const [slug, setSlug] = useState(initialData?.slug || "");
   const [subtitle, setSubtitle] = useState(initialData?.subtitle || "");
   const [excerpt, setExcerpt] = useState(initialData?.excerpt || "");
-  const [content, setContent] = useState(initialData?.content || "");
   const [challenge, setChallenge] = useState(initialData?.challenge || "");
   const [solution, setSolution] = useState(initialData?.solution || "");
   const [techStack, setTechStack] = useState<string[]>(initialData?.tech_stack || []);
@@ -118,6 +117,14 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
     setList(list.filter((t) => t !== tag));
   };
 
+  const handleConfidentialChange = (v: boolean) => {
+    setConfidential(v);
+    if (v) {
+      setLiveUrl("");
+      setRepoUrl("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -126,15 +133,14 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
         slug,
         subtitle,
         excerpt,
-        content,
         challenge,
         solution,
         results,
         tech_stack: techStack,
         image_url: imageUrl,
         gallery,
-        live_url: liveUrl,
-        repo_url: repoUrl,
+        live_url: confidential ? "" : liveUrl,
+        repo_url: confidential ? "" : repoUrl,
         year: year ? parseInt(year, 10) : null,
         confidential,
         is_published: isPublished,
@@ -227,15 +233,6 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Content (Markdown)</label>
-                <textarea
-                  className="flex min-h-[160px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
-                  placeholder="Write your project details here in markdown..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
                 <label className="text-sm font-medium">Challenge</label>
                 <textarea
                   className="flex min-h-[100px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
@@ -261,7 +258,7 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
           <Card className="rounded-2xl border-border/50 shadow-sm">
             <CardContent className="p-6 space-y-4">
               <Toggle label="Status (Published)" checked={isPublished} onChange={setIsPublished} />
-              <Toggle label="Confidential" checked={confidential} onChange={setConfidential} />
+              <Toggle label="Confidential" checked={confidential} onChange={handleConfidentialChange} />
 
               <TechStackPicker value={techStack} onChange={setTechStack} />
 
@@ -310,8 +307,14 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
                   placeholder="https://..."
                   value={liveUrl}
                   onChange={(e) => setLiveUrl(e.target.value)}
+                  disabled={confidential}
                   className="rounded-xl"
                 />
+                {confidential && (
+                  <p className="text-xs text-muted-foreground">
+                    Disabled for confidential projects.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -320,8 +323,14 @@ export function ProjectEditorForm({ initialData }: { initialData?: Project }) {
                   placeholder="https://github.com/..."
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
+                  disabled={confidential}
                   className="rounded-xl"
                 />
+                {confidential && (
+                  <p className="text-xs text-muted-foreground">
+                    Disabled for confidential projects.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
